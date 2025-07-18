@@ -1,3 +1,23 @@
+안녕하세요! 오류 메시지와 함께 다시 찾아주셔서 감사합니다. 제공해주신 Traceback을 보니 원인을 정확히 파악할 수 있습니다.
+
+오류 원인 🧐
+오류는 시간표의 시간 레이블을 만드는 아래 코드 부분에서 발생했습니다.
+
+Python
+
+# 기존 코드의 문제 부분
+class_labels = [f"{i/2 if i%2==0 else (i-1)/2+0.5}" for i in range(24)]
+...
+label = f"{int(class_labels[label_idx])} ({time_str})"
+여기서 class_labels 리스트에는 '0.0', '1.0', '2.0' 과 같이 소수점이 포함된 문자열이 저장됩니다. 파이썬에서 int() 함수는 '2' 와 같은 정수 형태의 문자열은 숫자로 바꿀 수 있지만, '2.0' 처럼 소수점이 포함된 문자열은 숫자로 바로 바꿀 수 없어서 ValueError가 발생한 것입니다.
+
+해결 방법 ✅
+이 문제를 해결하고 코드를 더 간결하게 만들기 위해, 시간 레이블을 생성하는 로직을 수정했습니다. 복잡한 리스트(class_labels)를 사용하는 대신, current_time.hour - 8과 같이 현재 시간에서 직접 교시를 계산하도록 변경했습니다.
+
+아래는 오류가 수정된 전체 코드입니다. 이 코드를 복사하여 timetable_app.py 파일에 붙여넣고 다시 실행해 보세요.
+
+Python
+
 import streamlit as st
 import pandas as pd
 from datetime import time, timedelta
@@ -11,18 +31,21 @@ st.title("🧑‍💻 수강신청 시간표 도우미")
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
+# --- 여기부터 수정된 부분 ---
+
 # 시간표의 시간 인덱스 생성 (08:00 ~ 19:30, 30분 간격)
 time_index = []
 current_time = time(8, 0)
 end_time = time(19, 30)
-class_labels = [f"{i/2 if i%2==0 else (i-1)/2+0.5}" for i in range(24)] # 0, 0.5, 1, ...
-label_idx = 0
 
 while current_time <= end_time:
-    # 예시 이미지와 같은 형식으로 시간 레이블 생성
     time_str = current_time.strftime('%H:%M')
+    
+    # 시간 레이블 생성 로직 수정 (더 간결하고 정확하게)
     if current_time.minute == 0:
-      label = f"{int(class_labels[label_idx])} ({time_str})"
+      # 교시 번호 (0, 1, 2, ...)를 시간에서 직접 계산
+      class_period = current_time.hour - 8
+      label = f"{class_period} ({time_str})"
     else:
       label = f".5 ({time_str})"
 
@@ -30,8 +53,8 @@ while current_time <= end_time:
     
     # 30분 증가
     current_time = (pd.to_datetime(f'2024-01-01 {current_time}') + timedelta(minutes=30)).time()
-    if current_time.minute == 0:
-        label_idx += 1
+
+# --- 여기까지 수정된 부분 ---
 
 # 시간표의 요일 컬럼
 days = ['월', '화', '수', '목', '금', '토', '일']
@@ -74,7 +97,6 @@ if st.session_state.courses:
             st.session_state.courses.pop(i)
             st.rerun() # 화면을 새로고침하여 즉시 반영
 
-
 # --- 3. 시간표에 과목 표시 및 중복 검사 ---
 
 # 중복 횟수를 기록하기 위한 DataFrame
@@ -101,23 +123,9 @@ for course in st.session_state.courses:
 
 # --- 4. 시간표 스타일링 및 출력 ---
 
-# 중복된 셀(값이 2 이상)을 빨간색으로 표시하는 함수
-def highlight_overlaps(val):
-    # 해당 셀의 위치(시간, 요일)를 기반으로 overlap_df에서 값을 가져옴
-    try:
-        # st.dataframe은 인덱스/컬럼 이름 대신 위치로 접근해야 할 수 있음
-        # 이 코드에서는 DataFrame을 직접 스타일링하므로 loc로 접근 가능
-        time, day = val.name, val.index
-        is_overlap = overlap_df.loc[time, day] > 1
-        return ['background-color: #FF4B4B; color: white' if v else '' for v in is_overlap]
-    except (AttributeError, KeyError):
-         # Series가 아닌 단일 값에 적용될 때 예외 처리
-        return ''
-
-# Series(열) 전체에 스타일을 적용
+# 열(column) 전체에 스타일을 적용하는 함수
 def style_column(col):
     # col.name은 현재 열의 이름 (예: '월')
-    # col.index는 시간 인덱스
     overlap_flags = overlap_df[col.name] > 1
     return ['background-color: #FF4B4B; color: white' if flag else '' for flag in overlap_flags]
 
