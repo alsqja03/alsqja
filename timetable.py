@@ -1,23 +1,3 @@
-안녕하세요! 오류 메시지와 함께 다시 찾아주셔서 감사합니다. 제공해주신 Traceback을 보니 원인을 정확히 파악할 수 있습니다.
-
-오류 원인 🧐
-오류는 시간표의 시간 레이블을 만드는 아래 코드 부분에서 발생했습니다.
-
-Python
-
-# 기존 코드의 문제 부분
-class_labels = [f"{i/2 if i%2==0 else (i-1)/2+0.5}" for i in range(24)]
-...
-label = f"{int(class_labels[label_idx])} ({time_str})"
-여기서 class_labels 리스트에는 '0.0', '1.0', '2.0' 과 같이 소수점이 포함된 문자열이 저장됩니다. 파이썬에서 int() 함수는 '2' 와 같은 정수 형태의 문자열은 숫자로 바꿀 수 있지만, '2.0' 처럼 소수점이 포함된 문자열은 숫자로 바로 바꿀 수 없어서 ValueError가 발생한 것입니다.
-
-해결 방법 ✅
-이 문제를 해결하고 코드를 더 간결하게 만들기 위해, 시간 레이블을 생성하는 로직을 수정했습니다. 복잡한 리스트(class_labels)를 사용하는 대신, current_time.hour - 8과 같이 현재 시간에서 직접 교시를 계산하도록 변경했습니다.
-
-아래는 오류가 수정된 전체 코드입니다. 이 코드를 복사하여 timetable_app.py 파일에 붙여넣고 다시 실행해 보세요.
-
-Python
-
 import streamlit as st
 import pandas as pd
 from datetime import time, timedelta
